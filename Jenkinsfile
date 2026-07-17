@@ -99,15 +99,24 @@ pipeline {
                     -i \$SSH_KEY \
                     ${DEV_VM_USER}@${DEV_VM_IP} << EOF
 
+
+                    echo "Configuring Docker authentication"
+
+                    gcloud auth configure-docker \
+                    ${REGION}-docker.pkg.dev --quiet
+
+
                     echo "Stopping old Dev container"
 
                     docker stop ${CONTAINER_NAME} || true
 
                     docker rm ${CONTAINER_NAME} || true
 
+
                     echo "Pulling Dev image"
 
                     docker pull ${DEV_IMAGE_PATH}:${BUILD_NUMBER}
+
 
                     echo "Starting Dev container"
 
@@ -116,6 +125,7 @@ pipeline {
                     -p 8000:8000 \
                     --name ${CONTAINER_NAME} \
                     ${DEV_IMAGE_PATH}:${BUILD_NUMBER}
+
 
 EOF
 
@@ -126,6 +136,7 @@ EOF
             }
 
         }
+
 
         stage('Manual Approval For UAT') {
 
@@ -139,6 +150,7 @@ EOF
             }
 
         }
+
 
         stage('Authenticate UAT GCP') {
 
@@ -169,6 +181,7 @@ EOF
 
         }
 
+
         stage('Tag And Push Image To UAT Artifact Registry') {
 
             steps {
@@ -179,6 +192,7 @@ EOF
                 ${DEV_IMAGE_PATH}:${BUILD_NUMBER} \
                 ${UAT_IMAGE_PATH}:${BUILD_NUMBER}
 
+
                 docker push \
                 ${UAT_IMAGE_PATH}:${BUILD_NUMBER}
 
@@ -187,6 +201,7 @@ EOF
             }
 
         }
+
 
         stage('Deploy To UAT VM') {
 
@@ -208,15 +223,24 @@ EOF
                     -i \$SSH_KEY \
                     ${UAT_VM_USER}@${UAT_VM_IP} << EOF
 
+
+                    echo "Configuring Docker authentication"
+
+                    gcloud auth configure-docker \
+                    ${REGION}-docker.pkg.dev --quiet
+
+
                     echo "Stopping old UAT container"
 
                     docker stop ${CONTAINER_NAME} || true
 
                     docker rm ${CONTAINER_NAME} || true
 
+
                     echo "Pulling UAT image"
 
                     docker pull ${UAT_IMAGE_PATH}:${BUILD_NUMBER}
+
 
                     echo "Starting UAT container"
 
@@ -225,6 +249,7 @@ EOF
                     -p 8000:8000 \
                     --name ${CONTAINER_NAME} \
                     ${UAT_IMAGE_PATH}:${BUILD_NUMBER}
+
 
 EOF
 
@@ -235,6 +260,7 @@ EOF
             }
 
         }
+
 
         stage('Cleanup Workspace') {
 
