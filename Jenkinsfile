@@ -195,26 +195,21 @@ stage('Deploy Dev VM') {
             sh """
 chmod 600 "\$SSH_KEY"
 
-ssh -o StrictHostKeyChecking=no \
+ssh -T \
+-o StrictHostKeyChecking=no \
 -i "\$SSH_KEY" \
 ${DEV_USER}@${DEV_VM} <<EOF
-
 set -ex
 
-echo "Docker Version"
 docker --version
 
-echo "Configuring Docker Authentication"
 gcloud auth configure-docker ${REGION}-docker.pkg.dev --quiet || true
 
-echo "Stopping old container"
 docker stop ${CONTAINER_NAME} || true
 docker rm ${CONTAINER_NAME} || true
 
-echo "Pulling Image"
 docker pull ${DEV_IMAGE}:${IMAGE_TAG}
 
-echo "Starting Container"
 docker run -d \
   --restart unless-stopped \
   -p 8000:8000 \
@@ -229,6 +224,7 @@ curl -I http://localhost:8000 || true
 
 exit 0
 EOF
+"""
 
 RET=\$?
 
