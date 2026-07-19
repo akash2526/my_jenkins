@@ -181,70 +181,60 @@ pipeline {
 
         }
 
-        stage('Deploy Dev VM') {
+stage('Deploy Dev VM') {
 
-            steps {
+    steps {
 
-                withCredentials([
+        withCredentials([
+            sshUserPrivateKey(
+                credentialsId: 'VM-dev-ssh-key',
+                keyFileVariable: 'SSH_KEY'
+            )
+        ]) {
 
-                    sshUserPrivateKey(
-                        credentialsId: 'VM-dev-ssh-key',
-                        keyFileVariable: 'SSH_KEY'
-                    )
+            sh '''
+chmod 600 $SSH_KEY
 
-                ]) {
+ssh -o StrictHostKeyChecking=no \
+-i $SSH_KEY \
+'"${DEV_USER}"'@'"${DEV_VM}"' <<EOF
+set -e
 
-                    sh """
+echo "Docker Version"
+docker --version
 
-                    chmod 600 \$SSH_KEY
+echo "Configuring Docker Authentication"
+gcloud auth configure-docker '"${REGION}"'-docker.pkg.dev --quiet || true
 
-                    ssh \
-                    -o StrictHostKeyChecking=no \
-                    -i \$SSH_KEY \
-                    ${DEV_USER}@${DEV_VM} << 'EOF'
+docker stop '"${CONTAINER_NAME}"' || true
+docker rm '"${CONTAINER_NAME}"' || true
 
-                    set -e
+echo "Pulling Image"
+docker pull '"${DEV_IMAGE}"':'"${IMAGE_TAG}"'
 
-                    echo "Docker Version"
-                    docker --version
+echo "Running Container"
 
-                    echo "Configuring Docker Authentication"
+docker run -d \
+--restart unless-stopped \
+-p 8000:8000 \
+--name '"${CONTAINER_NAME}"' \
+'"${DEV_IMAGE}"':'"${IMAGE_TAG}"'
 
-                    gcloud auth configure-docker \
-                    ${REGION}-docker.pkg.dev \
-                    --quiet || true
+sleep 5
 
-                    docker stop ${CONTAINER_NAME} || true
+docker ps
 
-                    docker rm ${CONTAINER_NAME} || true
+curl http://localhost:8000 || true
 
-                    echo "Pulling Image"
-
-                    docker pull ${DEV_IMAGE}:${IMAGE_TAG} || exit 1
-
-                    echo "Running Container"
-
-                    docker run -d \
-                    --restart unless-stopped \
-                    -p 8000:8000 \
-                    --name ${CONTAINER_NAME} \
-                    ${DEV_IMAGE}:${IMAGE_TAG}
-
-                    sleep 10
-
-                    docker ps
-
-                    curl http://localhost:8000 || true
-
-                    EOF
-
-                    """
-
-                }
-
-            }
+exit
+EOF
+'''
 
         }
+
+    }
+
+}
 
         stage('Manual Approval For UAT') {
 
