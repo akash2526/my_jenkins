@@ -183,191 +183,57 @@ pipeline {
 
         stage('Deploy Dev VM') {
 
-            steps {
+    steps {
 
-                withCredentials([
+        withCredentials([
 
-                    sshUserPrivateKey(
-                        credentialsId: 'VM-dev-ssh-key',
-                        keyFileVariable: 'SSH_KEY'
-                    )
+            sshUserPrivateKey(
+                credentialsId: 'VM-dev-ssh-key',
+                keyFileVariable: 'SSH_KEY'
+            )
 
-                ]) {
+        ]) {
 
-                    sh """
+            sh """
+chmod 600 \$SSH_KEY
 
-                    chmod 600 \$SSH_KEY
+ssh -o StrictHostKeyChecking=no \
+-i \$SSH_KEY \
+${DEV_USER}@${DEV_VM} << 'EOF'
 
-                    ssh \
-                    -o StrictHostKeyChecking=no \
-                    -i \$SSH_KEY \
-                    ${DEV_USER}@${DEV_VM} << EOF
+set -e
 
-                    set -e
+docker --version
 
-                    echo "Docker Version"
-                    docker --version
+gcloud auth configure-docker ${REGION}-docker.pkg.dev --quiet || true
 
-                    echo "Configuring Docker Authentication"
+docker stop ${CONTAINER_NAME} || true
+docker rm ${CONTAINER_NAME} || true
 
-                    gcloud auth configure-docker \
-                    ${REGION}-docker.pkg.dev \
-                    --quiet || true
+docker pull ${DEV_IMAGE}:${IMAGE_TAG}
 
-                    docker stop ${CONTAINER_NAME} || true
+docker run -d \
+--restart unless-stopped \
+-p 8000:8000 \
+--name ${CONTAINER_NAME} \
+${DEV_IMAGE}:${IMAGE_TAG}
 
-                    docker rm ${CONTAINER_NAME} || true
+sleep 5
 
-                    echo "Pulling Image"
+docker ps
 
-                    docker pull ${DEV_IMAGE}:${IMAGE_TAG} || exit 1
+curl http://localhost:8000 || true
 
-                    echo "Running Container"
+exit
 
-                    docker run -d \
-                    --restart unless-stopped \
-                    -p 8000:8000 \
-                    --name ${CONTAINER_NAME} \
-                    ${DEV_IMAGE}:${IMAGE_TAG}
-
-                    sleep 10
-
-                    docker ps
-
-                    curl http://localhost:8000 || true
-
-                    EOF
-
-                    """
-
-                }
-
-            }
-
-        }
-
-        stage('Manual Approval For UAT') {
-
-            steps {
-
-                input(
-                    message: 'Dev Deployment Successful. Deploy to UAT?',
-                    ok: 'Deploy'
-                )
-
-            }
-
-        }
-
-        stage('Authenticate UAT GCP') {
-
-            steps {
-
-                withCredentials([
-
-                    file(
-                        credentialsId: 'service-account-UAT',
-                        variable: 'GOOGLE_APPLICATION_CREDENTIALS'
-                    )
-
-                ]) {
-
-                    sh """
-
-                    gcloud auth activate-service-account \
-                    --key-file=\$GOOGLE_APPLICATION_CREDENTIALS
-
-                    gcloud config set project ${UAT_PROJECT}
-
-                    gcloud auth configure-docker \
-                    ${REGION}-docker.pkg.dev \
-                    --quiet
-
-                    """
-
-                }
-
-            }
-
-        }
-
-        stage('Promote Image To UAT') {
-
-            steps {
-
-                sh """
-
-                docker tag \
-                ${DEV_IMAGE}:${IMAGE_TAG} \
-                ${UAT_IMAGE}:${IMAGE_TAG}
-
-                docker push \
-                ${UAT_IMAGE}:${IMAGE_TAG}
-
-                """
-
-            }
-
-        }
-
-        stage('Deploy UAT VM') {
-
-            steps {
-
-                withCredentials([
-
-                    sshUserPrivateKey(
-                        credentialsId: 'VM-UAT-ssh-key',
-                        keyFileVariable: 'SSH_KEY'
-                    )
-
-                ]) {
-
-                    sh """
-
-                    chmod 600 \$SSH_KEY
-
-                    ssh \
-                    -o StrictHostKeyChecking=no \
-                    -i \$SSH_KEY \
-                    ${UAT_USER}@${UAT_VM} << EOF
-
-                    set -e
-
-                    gcloud auth configure-docker \
-                    ${REGION}-docker.pkg.dev \
-                    --quiet || true
-
-                    docker stop ${CONTAINER_NAME} || true
-
-                    docker rm ${CONTAINER_NAME} || true
-
-                    docker pull ${UAT_IMAGE}:${IMAGE_TAG} || exit 1
-
-                    docker run -d \
-                    --restart unless-stopped \
-                    -p 8000:8000 \
-                    --name ${CONTAINER_NAME} \
-                    ${UAT_IMAGE}:${IMAGE_TAG}
-
-                    sleep 10
-
-                    docker ps
-
-                    curl http://localhost:8000 || true
-
-                    EOF
-
-                    """
-
-                }
-
-            }
+EOF
+"""
 
         }
 
     }
 
+}
     post {
 
         always {
