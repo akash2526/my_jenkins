@@ -199,7 +199,7 @@ ssh -o StrictHostKeyChecking=no \
 -i "\$SSH_KEY" \
 ${DEV_USER}@${DEV_VM} <<EOF
 
-set -e
+set -ex
 
 echo "Docker Version"
 docker --version
@@ -214,23 +214,28 @@ docker rm ${CONTAINER_NAME} || true
 echo "Pulling Image"
 docker pull ${DEV_IMAGE}:${IMAGE_TAG}
 
-echo "Running Container"
+echo "Starting Container"
 docker run -d \
   --restart unless-stopped \
   -p 8000:8000 \
   --name ${CONTAINER_NAME} \
   ${DEV_IMAGE}:${IMAGE_TAG}
 
-sleep 5
+sleep 10
 
 docker ps
 
 curl -I http://localhost:8000 || true
 
-exit
+exit 0
 EOF
-"""
 
+RET=\$?
+
+echo "SSH returned \$RET"
+
+exit \$RET
+"""
         }
 
     }
@@ -316,40 +321,47 @@ EOF
 
                     sh """
 
-                    chmod 600 \$SSH_KEY
+                   chmod 600 "\$SSH_KEY"
 
-                    ssh \
-                    -o StrictHostKeyChecking=no \
-                    -i \$SSH_KEY \
-                    ${UAT_USER}@${UAT_VM} << 'EOF'
+ssh -o StrictHostKeyChecking=no \
+-i "\$SSH_KEY" \
+${UAT_USER}@${UAT_VM} <<EOF
 
-                    set -e
+set -ex
 
-                    gcloud auth configure-docker \
-                    ${REGION}-docker.pkg.dev \
-                    --quiet || true
+echo "Docker Version"
+docker --version
 
-                    docker stop ${CONTAINER_NAME} || true
+echo "Configuring Docker Authentication"
+gcloud auth configure-docker ${REGION}-docker.pkg.dev --quiet || true
 
-                    docker rm ${CONTAINER_NAME} || true
+docker stop ${CONTAINER_NAME} || true
+docker rm ${CONTAINER_NAME} || true
 
-                    docker pull ${UAT_IMAGE}:${IMAGE_TAG} || exit 1
+echo "Pulling Image"
+docker pull ${UAT_IMAGE}:${IMAGE_TAG}
 
-                    docker run -d \
-                    --restart unless-stopped \
-                    -p 8000:8000 \
-                    --name ${CONTAINER_NAME} \
-                    ${UAT_IMAGE}:${IMAGE_TAG}
+echo "Starting Container"
+docker run -d \
+--restart unless-stopped \
+-p 8000:8000 \
+--name ${CONTAINER_NAME} \
+${UAT_IMAGE}:${IMAGE_TAG}
 
-                    sleep 10
+sleep 10
 
-                    docker ps
+docker ps
 
-                    curl http://localhost:8000 || true
+curl -I http://localhost:8000 || true
 
-                    EOF
+exit 0
+EOF
+RET=\$?
 
-                    """
+echo "SSH returned \$RET"
+
+exit \$RET
+"""
 
                 }
 
