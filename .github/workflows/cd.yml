@@ -348,7 +348,8 @@ jobs:
         --quiet
 
     - name: Debug Variables
-     run: |
+    
+      run: |
        echo "DEV_IMAGE_PATH='${{ vars.DEV_IMAGE_PATH }}'"
        echo "UAT_IMAGE_PATH='${{ vars.UAT_IMAGE_PATH }}'"
 
