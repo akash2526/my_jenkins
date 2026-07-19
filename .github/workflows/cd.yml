@@ -119,7 +119,7 @@ jobs:
     - name: Push Image To DEV Artifact Registry
 
 
-      run:
+      run: |
 
 
         docker push \
@@ -198,7 +198,7 @@ jobs:
     - name: DEV Health Check
 
 
-      run:
+      run: |
 
 
         sleep 20
@@ -340,7 +340,7 @@ jobs:
     - name: Configure Docker Authentication
 
 
-      run:
+      run: |
 
 
         gcloud auth configure-docker \
@@ -448,7 +448,7 @@ jobs:
     - name: UAT Health Check
 
 
-      run:
+      run: |
 
 
         sleep 20
