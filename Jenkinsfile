@@ -196,8 +196,8 @@ stage('Deploy Dev VM') {
 chmod 600 $SSH_KEY
 
 ssh -o StrictHostKeyChecking=no \
--i $SSH_KEY \
-'"${DEV_USER}"'@'"${DEV_VM}"' <<EOF
+-i "$SSH_KEY" \
+${DEV_USER}@${DEV_VM} <<'EOF'
 set -e
 
 echo "Docker Version"
