@@ -347,7 +347,10 @@ jobs:
         ${{ vars.REGION }}-docker.pkg.dev \
         --quiet
 
-
+    - name: Debug Variables
+     run: |
+       echo "DEV_IMAGE_PATH='${{ vars.DEV_IMAGE_PATH }}'"
+       echo "UAT_IMAGE_PATH='${{ vars.UAT_IMAGE_PATH }}'"
 
 
 
