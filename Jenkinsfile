@@ -118,7 +118,7 @@ pipeline {
                 withCredentials([
 
                     file(
-                        credentialsId: 'gcp-service-account-dev',
+                        credentialsId: 'service-account-dev',
                         variable: 'GOOGLE_APPLICATION_CREDENTIALS'
                     )
 
@@ -318,7 +318,7 @@ EOF
                 withCredentials([
 
                     file(
-                        credentialsId: 'gcp-service-account-uat',
+                        credentialsId: 'service-account-UAT',
                         variable: 'GOOGLE_APPLICATION_CREDENTIALS'
                     )
 
