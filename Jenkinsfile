@@ -91,7 +91,7 @@ pipeline {
 
                 sh """
 
-                docker build \
+                DOCKER_BUILDKIT=0 docker build \
                 -t ${DEV_IMAGE}:${IMAGE_TAG} .
 
 
