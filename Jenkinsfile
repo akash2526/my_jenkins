@@ -193,38 +193,39 @@ stage('Deploy Dev VM') {
         ]) {
 
             sh """
-chmod 600 $SSH_KEY
+chmod 600 "\$SSH_KEY"
 
 ssh -o StrictHostKeyChecking=no \
--i "$SSH_KEY" \
-${DEV_USER}@${DEV_VM} <<'EOF'
+-i "\$SSH_KEY" \
+${DEV_USER}@${DEV_VM} <<EOF
+
 set -e
 
 echo "Docker Version"
 docker --version
 
 echo "Configuring Docker Authentication"
-gcloud auth configure-docker '"${REGION}"'-docker.pkg.dev --quiet || true
+gcloud auth configure-docker ${REGION}-docker.pkg.dev --quiet || true
 
-docker stop '"${CONTAINER_NAME}"' || true
-docker rm '"${CONTAINER_NAME}"' || true
+echo "Stopping old container"
+docker stop ${CONTAINER_NAME} || true
+docker rm ${CONTAINER_NAME} || true
 
 echo "Pulling Image"
-docker pull '"${DEV_IMAGE}"':'"${IMAGE_TAG}"'
+docker pull ${DEV_IMAGE}:${IMAGE_TAG}
 
 echo "Running Container"
-
 docker run -d \
---restart unless-stopped \
--p 8000:8000 \
---name '"${CONTAINER_NAME}"' \
-'"${DEV_IMAGE}"':'"${IMAGE_TAG}"'
+  --restart unless-stopped \
+  -p 8000:8000 \
+  --name ${CONTAINER_NAME} \
+  ${DEV_IMAGE}:${IMAGE_TAG}
 
 sleep 5
 
 docker ps
 
-curl http://localhost:8000 || true
+curl -I http://localhost:8000 || true
 
 exit
 EOF
