@@ -192,7 +192,7 @@ stage('Deploy Dev VM') {
             )
         ]) {
 
-            sh '''
+            sh """
 chmod 600 $SSH_KEY
 
 ssh -o StrictHostKeyChecking=no \
@@ -228,7 +228,7 @@ curl http://localhost:8000 || true
 
 exit
 EOF
-'''
+"""
 
         }
 
